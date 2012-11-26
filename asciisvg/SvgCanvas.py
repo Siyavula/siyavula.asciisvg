@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*-
 from __future__ import division
 import math
 from lxml import etree
+import cairo
+import rsvg
 import re
 import sys
 
 # ===================================================================================	
 
-class mySvgCanvas:
+class SvgCanvas:
 
 	# ==============================
 	# Variables
@@ -15,11 +18,14 @@ class mySvgCanvas:
 	loc_var = {}
 	complete_string = ""
 	error_string = ""	
+	debug_string = ""
 	xml_parent = None
+	xml_pointer = None
+	xml_parent_pointer = None
 
 	# Error Handling
-	loc_var["complete_log"] = 1			# Screen-dump Flag: Completed lines of code
-	loc_var["error_log"] 		= 1			# Screen-dump Flag: Errors that occur
+	loc_var["complete_log"] = 0			# SVG Flags: Completed lines of code
+	loc_var["error_log"] 		= 1			# SVG Flags: Errors that occur
 
 	# Canvas Variables
 	loc_var["xmin"] = loc_var["defaultxmin"] 								= -5
@@ -111,15 +117,20 @@ class mySvgCanvas:
 		self.xml_parent.attrib['id'] = str(name)
 		if (width != None): self.loc_var["width"] = int(float(width))
 		if (height != None): self.loc_var["height"] = int(float(height)) 
+		self.start_group()	# Create a blank rotation group
 		self.initPicture(-5,5,-5,5)
 
 		# Declare Functions as Variables
+		self.loc_var["mathjs"] = self.mathjs
+		self.loc_var["dprint"] = self.dprint
+		self.loc_var["process_text"] = self.process_text
+		self.loc_var["find_quote_pairs"] = self.find_quote_pairs
+
 		self.loc_var["initPicture"] = self.initPicture
 		self.loc_var["setBorder"] = self.setBorder
 		self.loc_var["text"] = self.text
 		self.loc_var["arrowhead"] = self.arrowhead
 		self.loc_var["dot"] = self.dot
-		self.loc_var["mathjs"] = self.mathjs
 		self.loc_var["line"] = self.line
 		self.loc_var["ellipse"] = self.ellipse
 		self.loc_var["circle"] = self.circle
@@ -136,6 +147,14 @@ class mySvgCanvas:
 		self.loc_var["petal"] = self.petal
 		self.loc_var["heart"] = self.heart
 		self.loc_var["slopefield"] = self.slopefield
+		self.loc_var["xml_get_pointer"] = self.xml_get_pointer
+		self.loc_var["start_group"] = self.start_group
+		self.loc_var["stop_group"] = self.stop_group
+		self.loc_var["angle_arc"] = self.angle_arc
+		self.loc_var["cloud"] = self.cloud
+		self.loc_var["star"] = self.star
+		self.loc_var["grass"] = self.grass
+		self.loc_var["flower"] = self.flower
 
 		# Special Functions
 		self.loc_var["frange"] = self.frange										# Decimal-compatible "range"
@@ -190,6 +209,7 @@ class mySvgCanvas:
 		a = a.replace("null", "None")														# "None" elements
 		a = a.replace('"green"', '"darkgreen"') 								# Colours
 		a = a.replace("'green'", "'darkgreen'") 								# Colours
+		a = a.replace("String(", "str(") 												# String Handling
 
 		# Replace FOR LOOP
 		if (len(re.findall("(^|[^a-zA-Z])for[^a-zA-Z]", a)) == 1):
@@ -240,12 +260,93 @@ class mySvgCanvas:
 
 		return string
 
+# ========================================================================================
+
+	def find_quote_pairs(self, text):
+
+		# Returns an array mapping all the strings in the text
+
+		# Variabes
+		index_default = None
+		quote_pair = [index_default,index_default]
+		quote_types = ["'", '"']
+		quote_open = ""
+		quote_map = []
+
+		i = 0
+		while i < len(text):
+
+			parity = False # does text[i] have a preceeding slash? (default = false)
+			char_current = text[i]
+
+			# Is the character a valid quote?
+			if (char_current in quote_types):
+	
+				# Count parity for quote_current (check repetitively for all \\ slashes)
+				j = 0
+				while (j <= i) and (text[i-j-1] == "\\"):
+					# Toggle parity
+					parity = not (parity)
+					j += 1
+
+				if (parity == False):
+
+					if (quote_pair[0] == index_default): 
+						# Open the pair
+						quote_pair[0] = i
+						quote_open = char_current
+				
+					elif (quote_open == char_current):
+						# Close the pair
+						quote_pair[1] = i
+						# Append to list
+						quote_map.append(quote_pair + [(quote_open == quote_types[0] and "single" or "double")])
+						# Reset Variables		
+						quote_pair = [index_default,index_default]
+						quote_open = ""
+			
+			i += 1
+
+		return quote_map
+
+# ========================================================================================
+
+	def process_text(self, text):
+	
+		quote_map =	self.find_quote_pairs(text); quote_map.sort(); quote_map.reverse()  # Reverse Sort
+		#text += '\ntext([-4,-4], "' + str(quote_map) + '", right)'
+
+		for quote_map_piece in quote_map:
+			# Isolate Piece
+			piece = text[quote_map_piece[0]+1:quote_map_piece[1]]
+			# Edit Piece
+			if (quote_map_piece[2] == "double"):	
+				piece = piece.replace("^{", "<tspan dy='\"+str(int(fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>")
+				piece = piece.replace("_{", "<tspan dy='\"+str(int(-fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>")
+				piece = piece.replace("{", "<tspan>") # Allowing blank braces 
+				piece = piece.replace("}", "</tspan>")
+
+			elif (quote_map_piece[2] == "single"):		
+				piece = piece.replace("^{", '<tspan dy="\'+str(int(fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">')
+				piece = piece.replace("_{", '<tspan dy="\'+str(int(-fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">')
+				piece = piece.replace("{", '<tspan>') # Allowing blank braces 
+				piece = piece.replace("}", '</tspan>')
+			# Integrate Piece
+			text = text[:quote_map_piece[0]+1] + piece + text[quote_map_piece[1]:]
+				
+		return text
+
 # ===================================================================================	
 
 	def process_ascii_multi_line(self, ascii_string):
-		
-		b = self.preprocess_block(ascii_string)			# Convert Ascii to Python (except FOR loops)
+
+		# Format Text (superscript & subscript)
+		b = self.process_text(ascii_string)			# Convert Ascii to Python (except FOR loops)
+
+		# Process Javascript -> Python (brackets)
+		b = self.preprocess_block(b)			# Convert Ascii to Python (except FOR loops)
 	
+		# Process Javascript -> Python (keywords)
 		final_string = ""
 		ascii_list = b.split('\n')		
 		for ascii_line in ascii_list:
@@ -258,12 +359,14 @@ class mySvgCanvas:
 		try:
 			exec(final_string, None, self.loc_var)
 			self.complete_string += "\nASCII -> SVG conversion complete. \n\nOriginal Code:\n\n" + str(ascii_string) + "\n\nCode Processed:\n\n" + str(final_string) 
-		except Exception, err:				
+		except Exception, err:
 			self.error_string += "\nASCII -> SVG conversion ERROR: " + str(err) + ", " + str(sys.exc_info()[0]) + "\n\nOriginal Code:\n\n" + str(ascii_string) + "\n\nCode Processed:\n\n" + str(final_string) 
 
 # ===================================================================================	
 
 	process_ascii = process_ascii_multi_line
+
+# ===================================================================================	
 
 	def process_ascii_single_line(self, ascii_string):
 
@@ -287,7 +390,7 @@ class mySvgCanvas:
 
 	def generate_string(self):
 
-		self.str_parent = etree.tostring(self.xml_parent)	
+		self.str_parent = etree.tostring(self.xml_parent, pretty_print=True)	
 
 		if ((self.loc_var["complete_log"] == 1 and len(self.complete_string) > 0) or (self.loc_var["error_log"] == 1 and len(self.error_string) > 0)):
 			self.str_parent += "\n\n<!-- \n"
@@ -298,6 +401,12 @@ class mySvgCanvas:
 				self.str_parent += self.error_string + "\n"
 			self.str_parent += "\n-->\n"
 		return self.str_parent
+
+# ===================================================================================
+
+	def generate_array(self):
+		self.str_parent = etree.tostring(self.xml_parent, pretty_print=True)
+		return self.str_parent, self.complete_string, self.error_string, self.debug_string
 
 # ========================================================================================
 
@@ -343,6 +452,10 @@ class mySvgCanvas:
 		self.loc_var["dotradius"] = self.loc_var["defaultdotradius"]
 		self.loc_var["ticklength"] = self.loc_var["defaultticklength"]
 
+		self.xml_parent = None
+		self.xml_pointer = -1 						# !!! Important !!!
+		self.xml_parent_pointer = list() 	# !!! Important !!!
+
 # ========================================================================================
 
 	def frange(self, start, end, leap):
@@ -359,7 +472,7 @@ class mySvgCanvas:
 				current += leap
 			return result
 		else:
-			return [0]
+			return []
 
 # ========================================================================================
 
@@ -428,6 +541,79 @@ class mySvgCanvas:
 
 	'''
 	==============================
+	Functions (GROUPING)
+	==============================
+	> xml_get_pointer()
+	> start_group(center=[0,0], angle=0, scale=[1,1], translate=[0,0])
+	> stop_group()
+	============================== 
+	'''
+
+# ========================================================================================
+
+	def dprint(self, string):
+		self.debug_string += str(string) + "\n"
+
+# ========================================================================================
+
+	def xml_get_pointer(self):
+		if (len(self.xml_parent_pointer) > 0):
+			var_parent = "][".join([str(i) for i in self.xml_parent_pointer])
+			return "self.xml_parent[" + var_parent + "]" # + var_current
+		else:
+			return "self.xml_parent"  # + var_current
+
+# ========================================================================================
+
+	def start_group(self, center=[0,0], rotate_angle=0, scale=[1,1], translate=[0,0]):
+
+		# Initialize variables
+		if (center == None): center=[0,0]
+		if (rotate_angle == None): rotate_angle=0
+		if (scale == None): scale=[1,1]
+		if (translate == None): translate=[0,0]
+
+		# Create group based on pointer
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'g')")
+		node.attrib['parent'] = str(self.xml_get_pointer())
+
+		# Change pointer to new parent
+		exec("self.xml_parent_pointer.append(len(" + str(self.xml_get_pointer()) + ".getchildren())-1)")
+		node.attrib['self'] = str(self.xml_get_pointer())
+
+		# Group attributes
+		node.attrib['angle'] = str(-rotate_angle)
+		node.attrib['scale_x'] = str(scale[0])
+		node.attrib['scale_y'] = str(scale[1])
+		cx = round(center[0] * self.loc_var["xunitlength"] + self.loc_var["origin"][0],2)
+		cy = round(float(self.loc_var["height"]) - center[1] * self.loc_var["yunitlength"] - self.loc_var["origin"][1],2)
+		tx = round(translate[0] * self.loc_var["xunitlength"],2)
+		ty = round(translate[1] * self.loc_var["yunitlength"],2)
+		sx = scale[0]
+		sy = scale[1] != None and scale[1] or sx
+		
+		# Rotate
+		transform_string = "rotate("+str(node.attrib['angle'])+", "+str(cx)+", "+str(cy)+") "
+		
+		# Scale (transform + scale + reverse transform)
+		transform_string += "translate("+str(cx)+", "+str(cy)+") "
+		transform_string += "scale("+str(sx)+", "+str(sy)+")"
+		transform_string += "translate("+str(-cx)+", "+str(-cy)+") "
+
+		# Translate
+		transform_string += "translate("+str(tx/sx)+", "+str(-1*ty/sy)+")"
+		node.attrib['transform'] = transform_string
+
+# ========================================================================================	
+
+	def stop_group(self):
+		if (len(self.xml_parent_pointer) > 0):
+			self.xml_parent_pointer.pop(-1)
+			
+# ========================================================================================
+
+	'''
+	==============================
 	Functions (BASIC SVG ELEMENTS)
 	==============================
 	> myCreateElementSVG(t)
@@ -438,7 +624,7 @@ class mySvgCanvas:
 	'''
 
 # ========================================================================================
-	
+
 	def dot(self, center=[0,0], typ=None, label=None, pos=None, angle=None):
 
 		cx = center[0] * self.loc_var["xunitlength"] + self.loc_var["origin"][0]
@@ -446,8 +632,7 @@ class mySvgCanvas:
 
 		# If the Type is Defined
 		if (typ == "+" or typ == "-" or typ == "|"):
-			node = etree.fromstring("<path></path>")
-			self.xml_parent.append(node)
+			exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
 			if (typ=="+"):					
 				node.attrib['d'] = 	" M " + str(cx - self.loc_var["ticklength"]) + " " + str(cy) + \
 														" L " + str(cx + self.loc_var["ticklength"]) + " " + str(cy) + \
@@ -466,9 +651,7 @@ class mySvgCanvas:
 
 		# Type NOT Defined
 		else:
-
-			node = etree.fromstring("<circle></circle>")
-			self.xml_parent.append(node)
+			exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'circle')")
 			node.attrib['cx'] = str(cx)
 			node.attrib['cy'] = str(cy)
 			node.attrib['r'] = str(self.loc_var["dotradius"])
@@ -482,7 +665,7 @@ class mySvgCanvas:
 
 # ========================================================================================
 	
-	def arrowhead(self,p=[0,0],q=[1,1],size=None):
+	def arrowhead(self,p=[0,0],q=[1,1],size=1):
 
 		v = [p[0]*self.loc_var["xunitlength"]+self.loc_var["origin"][0],float(self.loc_var["height"])-p[1]*self.loc_var["yunitlength"]-self.loc_var["origin"][1]]		# adjusted start point
 		w = [q[0]*self.loc_var["xunitlength"]+self.loc_var["origin"][0],float(self.loc_var["height"])-q[1]*self.loc_var["yunitlength"]-self.loc_var["origin"][1]]		# adjusted end point
@@ -491,9 +674,8 @@ class mySvgCanvas:
 		if (d > 0.000001):
 			u = [u[0]/d, u[1]/d]	# unit vector
 			up = [-u[1],u[0]] 		# inverse unit vector
-			node = etree.fromstring("<path></path>")
-			self.xml_parent.append(node)
-			node.attrib['d'] = str("M " + str(w[0]-15*u[0]-4*up[0]) + " " + str(w[1]-15*u[1]-4*up[1]) + " L " + str(w[0]-3*u[0]) + " " + str(w[1]-3*u[1]) + " L " + str(w[0]-15*u[0]+4*up[0]) + " " + str(w[1]-15*u[1]+4*up[1]) + " Z")
+			exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
+			node.attrib['d'] = str("M " + str(w[0]-(size+15)*u[0]-5*up[0]) + " " + str(w[1]-(size+15)*u[1]-5*up[1]) + " L " + str(w[0]-(size*1.25-1)*u[0]) + " " + str(w[1]-(size*1.25-1)*u[1]) + " L " + str(w[0]-(size+15)*u[0]+5*up[0]) + " " + str(w[1]-(size+15)*u[1]+5*up[1]) + " Z")
 			node.attrib['stroke-width'] = str(size != None and size or self.loc_var["markerstrokewidth"])
 			node.attrib['stroke'] = self.loc_var["stroke"]
 			node.attrib['fill'] = self.loc_var["stroke"]
@@ -543,13 +725,36 @@ class mySvgCanvas:
 			dy = int(float(self.loc_var["fontsize"]))				
 			textanchor = "start"
 		
-		# Text Rotation
+		# Text Rotation (Using old append method -- UNICODE compatability)
 		node = etree.fromstring("<text>" + str(st) + "</text>")
-		self.xml_parent.append(node)
+		exec(str(self.xml_get_pointer()) + ".append(node)")
+
+		# Remove angle for EACH parent
+		adjusted_angle = int(angle)
+		adjusted_scale_x = 1;
+		adjusted_scale_y = 1;
+		str_transform = "";
+
+		# Properties
 		node.attrib['x'] = str(round(p[0] * self.loc_var["xunitlength"] + self.loc_var["origin"][0] + dx,2))		
 		node.attrib['y'] = str(round(float(self.loc_var["height"]) - p[1] * self.loc_var["yunitlength"] - self.loc_var["origin"][1]+dy,2))
-		if (angle != 0):
-			node.attrib['transform'] = "rotate("+str(angle)+", "+str(node.attrib['x'])+", "+str(node.attrib['y'])+")"
+
+		for k in range (0,len(self.xml_parent_pointer)):
+			var_parent = "[" + "][".join([str(i) for i in self.xml_parent_pointer[0:k+1]]) + "]"
+			
+			# Reverse Angle
+			adjusted_angle -= float(eval("self.xml_parent" + str(var_parent) + ".attrib['angle']"))
+			
+			# Reverse Scale
+			adjusted_scale_x = 1/float(eval("self.xml_parent" + str(var_parent) + ".attrib['scale_x']"))
+			adjusted_scale_y = 1/float(eval("self.xml_parent" + str(var_parent) + ".attrib['scale_y']"))
+			str_transform += "translate("+str(node.attrib['x'])+", "+str(float(node.attrib['y'])-dy)+") "
+			str_transform += "scale("+str(adjusted_scale_x)+", "+str(adjusted_scale_y)+") "
+			str_transform += "translate("+str(-1*float(node.attrib['x']))+", "+str(-1*(float(node.attrib['y'])-dy))+") "
+
+		# Properties
+		str_transform += "rotate("+str(adjusted_angle)+", "+str(float(node.attrib['x'])-dx)+", "+str(float(node.attrib['y'])-dy)+") "
+		node.attrib['transform'] = str_transform
 		node.attrib['font-style'] = str(self.loc_var["fontstyle"])
 		node.attrib['font-family'] = str(self.loc_var["fontfamily"])
 		node.attrib['font-size'] = str(self.loc_var["fontsize"])
@@ -577,9 +782,8 @@ class mySvgCanvas:
 	
 	def line(self,p,q):
 
-		node = etree.fromstring("<path></path>")
-		self.xml_parent.append(node)
-		
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
+
 		# Formatting
 		if (self.loc_var["strokedasharray"] == None):
 			self.loc_var["strokedasharray"] = [1,0]
@@ -609,20 +813,22 @@ class mySvgCanvas:
 
 		# ending point (q) 
 		if (self.loc_var["marker"] == "arrowdot" or self.loc_var["marker"] == "arrow"):	
-			self.arrowhead(p,q)
+			self.arrowhead(p,q,self.loc_var["markersize"])
 		if (self.loc_var["marker"] == "dot"):
 			self.dot(q)
 
 # ========================================================================================
 
 	def ellipse(self, center=[0,0], rx=1, ry=None):
-		node = etree.fromstring("<ellipse></ellipse>")
-		self.xml_parent.append(node)
+
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'ellipse')")
 		node.attrib['cx'] = str(round(center[0] * self.loc_var["xunitlength"] + self.loc_var["origin"][0],2))
 		node.attrib['cy'] = str(round(float(self.loc_var["height"]) - center[1] * self.loc_var["yunitlength"] - self.loc_var["origin"][1],2))
 		node.attrib['rx'] = str(round(rx * self.loc_var["xunitlength"],2))
 		node.attrib['ry'] = (ry != None and (str(round(ry * self.loc_var["yunitlength"],2))) or node.attrib['rx'])
 		node.attrib['stroke-width'] = str(self.loc_var["strokewidth"])
+		node.attrib['stroke-dasharray'] = str(self.loc_var["strokedasharray"][0]) + ", " + \
+																			str(self.loc_var["strokedasharray"][1])
 		node.attrib['stroke'] = str(self.loc_var["stroke"])
 		node.attrib['fill'] = str(self.loc_var["fill"])
 
@@ -634,8 +840,8 @@ class mySvgCanvas:
 # ========================================================================================
 
 	def arc(self,start=[0,0],end=[1,1],radius=None):
-		node = etree.fromstring("<path></path>")
-		self.xml_parent.append(node)
+		
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
 		
 		# Radius
 		if (radius==None):  
@@ -709,8 +915,7 @@ class mySvgCanvas:
 	def noaxes(self):
 
 		# Initialize blank background
-		node = etree.fromstring("<rect></rect>")
-		self.xml_parent.append(node)
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'rect')")
 		node.attrib['x'] = "0"
 		node.attrib['y'] = "0"
 		node.attrib['width'] = str(float(self.loc_var["width"]))
@@ -721,7 +926,7 @@ class mySvgCanvas:
 
 # ========================================================================================
 
-	def axes(self,dx=None,dy=None,labels=None,gdx=None,gdy=None):
+	def axes(self,dx=None,dy=None,labels=None,gdx=None,gdy=None,units=None):
 
 		if (dx != None and dx <= 0): dx = 1
 		if (dy != None and dy <= 0): dy = 1
@@ -755,8 +960,7 @@ class mySvgCanvas:
 					string += " M 0," + str(i) + " " + str(float(self.loc_var["width"])) + "," + str(i) # y-axis (negative)
 
 			# Create SVG Element
-			pnode = etree.fromstring("<path></path>")
-			self.xml_parent.append(pnode)
+			exec("pnode = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
 			pnode.attrib['d'] = str(string)
 			pnode.attrib['stroke-width'] = str(0.5)
 			pnode.attrib['stroke'] = str(self.loc_var["gridstroke"])
@@ -798,24 +1002,55 @@ class mySvgCanvas:
 					str(self.loc_var["origin"][0] - self.loc_var["ticklength"]) + "," + str(i) # y-axis (negative)
 		
 			# Axes
-			pnode = etree.fromstring("<path></path>")
-			self.xml_parent.append(pnode)
+			exec("pnode = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
 			pnode.attrib['d'] = str(string)
 			pnode.attrib['stroke-width'] = str(0.5)
 			pnode.attrib['stroke'] = str(self.loc_var["axesstroke"])
 			pnode.attrib['fill'] = str(self.loc_var["fill"])
 
-		if (labels!=None):
+		# Units
+		xunits = ""
+		yunits = ""
+		if (isinstance(units, list)):
+			if (len(units) > 0):
+				xunits = units[0]
+			if (len(units) > 1):
+				yunits = units[1]
 
-			# Labels
-			for i in self.frange(dx, self.loc_var["xmax"], dx):
-				self.text([i,0],str(int(i)),"below") # x-axis (positive)
-			for i in self.frange(-dx, self.loc_var["xmin"], -dx):
-				self.text([i,0],str(int(i)),"below") # x-axis (positive)
-			for i in self.frange(dy, self.loc_var["ymax"], dy):
-				self.text([0,i],str(int(i)),"left") # y-axis (positive)
-			for i in self.frange(-dy, self.loc_var["ymin"], -dy): 
-				self.text([0,i],str(int(i)),"left") # y-axis (negative)
+		# Labels
+		if (labels!=None):
+			if (isinstance(labels, list)):
+				if(len(labels) > 0):
+					if(labels[0] == 1):
+						for i in self.frange(dx, self.loc_var["xmax"], dx):
+							self.text([i,0],str(int(i)) + str(xunits),"below") # x-axis (positive)
+				if(len(labels) > 1):
+					if(labels[1] == 1):
+						for i in self.frange(-dx, self.loc_var["xmin"], -dx):
+							self.text([i,0],str(int(i)) + str(xunits),"below") # x-axis (positive)
+				if(len(labels) > 2):
+					if(labels[2] == 1):
+						for i in self.frange(dy, self.loc_var["ymax"], dy):
+							self.text([0,i],str(int(i)) + str(yunits),"left") # y-axis (positive)
+				if(len(labels) > 3):
+					if(labels[3] == 1):
+						for i in self.frange(-dy, self.loc_var["ymin"], -dy): 
+							self.text([0,i],str(int(i)) + str(yunits),"left") # y-axis (negative)
+				if(len(labels) > 4):
+					if(labels[4] != None):
+						self.text([0,0],0,labels[4]) # origin
+
+			else:
+				# Labels
+				for i in self.frange(dx, self.loc_var["xmax"], dx):
+					self.text([i,0],str(int(i)) + str(xunits),"below") # x-axis (positive)
+				for i in self.frange(-dx, self.loc_var["xmin"], -dx):
+					self.text([i,0],str(int(i)) + str(xunits),"below") # x-axis (positive)
+				for i in self.frange(dy, self.loc_var["ymax"], dy):
+					self.text([0,i],str(int(i)) + str(yunits),"left") # y-axis (positive)
+				for i in self.frange(-dy, self.loc_var["ymin"], -dy): 
+					self.text([0,i],str(int(i)) + str(yunits),"left") # y-axis (negative)
+				self.text([0,0],0,"belowleft") # origin
 
 # ========================================================================================
 
@@ -825,8 +1060,7 @@ class mySvgCanvas:
 # ========================================================================================
 
 	def rect(self,p=[0,0],q=[1,1],rx=0,ry=0):
-		node = etree.fromstring("<rect></rect>")
-		self.xml_parent.append(node)
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'rect')")
 		node.attrib['x'] = str(p[0]*self.loc_var["xunitlength"]+self.loc_var["origin"][0])
 		node.attrib['y'] = str(float(self.loc_var["height"])-q[1]*self.loc_var["yunitlength"]-self.loc_var["origin"][1])
 		node.attrib['width'] = str((q[0]-p[0])*self.loc_var["xunitlength"])
@@ -871,9 +1105,7 @@ class mySvgCanvas:
 		# Close the Path
 		if (closed != None):
 			string += " Z"
-
-		node = etree.fromstring("<path></path>")
-		self.xml_parent.append(node)
+		exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
 		node.attrib['d'] = str(string)
 		node.attrib['stroke-width'] = str(self.loc_var["strokewidth"])
 		node.attrib['stroke-dasharray'] = 	str(self.loc_var["strokedasharray"][0]) + ", " + \
@@ -892,6 +1124,8 @@ class mySvgCanvas:
 
 		x_min = (x_min == None and self.loc_var["xmin"] or x_min)
 		x_max = (x_max == None and self.loc_var["xmax"] or x_max)
+		if (x_max <= x_min):
+			x_max = x_min + 5
 		array_points = []
 
 		# plot ("sin(x)") 
@@ -967,6 +1201,132 @@ class mySvgCanvas:
 
 # ========================================================================================
 
+	def cloud(self,p=[0,0],size=2,humps=6):
+
+		# Backup of original colours
+		backup_fill = self.loc_var["fill"];	backup_stroke = self.loc_var["stroke"]; 
+
+		# Cloud fill
+		self.loc_var["stroke"] = backup_fill;	self.arc([p[0]+size,p[1]],[p[0]-size,p[1]],size)
+
+		# Bottom of cloud
+		self.loc_var["stroke"] = backup_stroke; self.line([p[0]-size,p[1]],[p[0]+size,p[1]])
+
+		# Humps
+		hump_array = []
+		for i in range(0,humps+1):
+			hump_array.append([p[0]+size*math.sin(i*math.pi/humps - math.pi/2),p[1]+size*math.cos(i*math.pi/humps - math.pi/2)])
+		for i in range(1,len(hump_array)):
+			self.arc(hump_array[i],hump_array[i-1],0.001)
+
+# ========================================================================================
+
+	def star(self,p=[0,0],size=2,points=6, inner_radius=0.5):
+
+		# Backup of original colours
+		backup_fill = self.loc_var["fill"];	backup_stroke = self.loc_var["stroke"]; 
+
+		# Points
+		point_array = []
+		for i in range(0,points+1):
+			point_array.append([p[0]+size*math.sin(2*i*math.pi/points - math.pi/2),p[1]+size*math.cos(2*i*math.pi/points - math.pi/2)])
+			point_array.append([p[0]+inner_radius*size*math.sin(2*(i+0.5)*math.pi/points - math.pi/2),p[1]+inner_radius*size*math.cos(2*(i+0.5)*math.pi/points - math.pi/2)])
+		
+		# Star Fill
+		self.path(point_array)
+
+# ========================================================================================
+
+	def grass(self,p=[0,0],size=2,leaves=3,droop = 0.6):
+
+		# Backup of original colours
+		backup_fill = self.loc_var["fill"];
+		
+		self.loc_var["fill"] = "none"
+	
+		if (leaves > 1 and leaves < 20):
+			# Left / Right
+			for i in [-1,1]:
+				for j in range(0,leaves):
+				  dot_a = [p[0],p[1]]
+				  dot_b = [p[0],p[1]+size]
+				  dot_c = [p[0]+size*(0.5*math.sin(j*2*math.pi/(2*(leaves-1)) - math.pi/2)),p[1]+size*((droop/2)*math.cos(j*2*math.pi/(2*(leaves-1)) - math.pi/2) + droop)]
+				  self.smoothcurve([dot_a,dot_b,dot_c])
+
+		self.loc_var["fill"] = backup_fill
+
+# ========================================================================================
+
+	def flower(self,p=[0,0],size=2,petals=12,center_fill="white",center_stroke="black",center_size =0.8):
+
+		# Backup of original colours
+		backup_fill = self.loc_var["fill"];	backup_stroke = self.loc_var["stroke"]; 
+
+		# Cloud fill
+		self.loc_var["stroke"] = backup_fill;	self.circle([p[0],p[1]],size)
+
+		self.loc_var["stroke"] = backup_stroke;
+
+		# Humps
+		petal_array = []
+		for i in range(0,petals+1):
+			petal_array.append([p[0]+size*math.sin(i*2*math.pi/petals),p[1]+size*math.cos(i*2*math.pi/petals)])
+		for i in range(1,len(petal_array)):
+			self.arc(petal_array[i],petal_array[i-1],0.001)
+
+		# Center
+		self.loc_var["fill"] = center_fill;
+		self.loc_var["stroke"] = center_stroke;
+		self.circle([p[0],p[1]],size*center_size)
+
+		# Restore Values
+		self.loc_var["stroke"] = backup_stroke;
+		self.loc_var["fill"] = backup_fill;
+
+# ========================================================================================
+
+	def angle_arc(self, center=[0,0], radius=1, start_deg=0, stop_deg=45, text="", text_offset=0.25):
+
+		# Backup of original colours
+		backup_fill = self.loc_var["fill"];
+		self.loc_var["fill"] = "none"
+
+		# Calculations
+		start_deg %= 360
+		stop_deg %= 360
+		diff = (stop_deg - start_deg) % 360
+		angle_start = (math.pi/180) * start_deg
+		angle_stop = (math.pi/180) * stop_deg
+		
+		# Drawing the arc
+		if (diff > 180):
+			self.arc(	[center[0] + radius*math.cos(angle_start),
+									center[1] + radius*math.sin(angle_start)],
+								[center[0] + radius*math.cos(angle_start + math.pi),
+									center[1] + radius*math.sin(angle_start + math.pi)],radius)
+			self.arc(	[center[0] + radius*math.cos(angle_start + math.pi),
+									center[1] + radius*math.sin(angle_start + math.pi)],
+								[center[0] + radius*math.cos(angle_stop),
+									center[1] + radius*math.sin(angle_stop)],radius)
+		else:
+			self.arc([center[0] + radius*math.cos(angle_start),center[1] + radius*math.sin(angle_start)],[center[0] + radius*math.cos(angle_stop),center[1] + radius*math.sin(angle_stop)],radius)
+
+		# Text
+		if (angle_start > angle_stop):
+			text_angle = angle_start + ((2*math.pi+angle_stop)-angle_start)/2
+		else:
+			text_angle = angle_start + (angle_stop-angle_start)/2			
+
+		text_x = center[0] + radius*math.cos(text_angle)*(1+text_offset)*int(text_angle/abs(text_angle))
+		text_y = center[1] + radius*math.sin(text_angle)*(1+text_offset)*int(text_angle/abs(text_angle))
+		#unit_vector_sign = int(1/abs(1)))
+		self.text([text_x,text_y], str(text))
+
+		# Restore FILL variable
+		self.loc_var["fill"] = backup_fill
+
+# ========================================================================================
+
 	def slopefield(self,func="sin(x)",dx=None,dy=None):
 
 		if (dx == None or dx <= 0): dx=1
@@ -995,3 +1355,28 @@ class mySvgCanvas:
 					u = dz/math.sqrt(1 + gout*gout)
 					v = gout * u
 					self.line([round(x-u,2),round(y-v,2)],[round(x+u,2),round(y+v,2)])
+
+# ========================================================================================
+
+	'''
+	==============================
+	Functions (SVG -> PNG)
+	==============================
+	> create_png
+	============================== 
+	'''
+# ========================================================================================
+
+def create_png(filename, width, height, svg_string):
+
+	# Source: http://cairographics.org/download/
+	# Example Code: http://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
+
+	img =  cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+	ctx = cairo.Context(img)
+	handler= rsvg.Handle(None, svg_string)
+	handler.render_cairo(ctx)
+	img.write_to_png(filename+".png")
+
+# ========================================================================================
+

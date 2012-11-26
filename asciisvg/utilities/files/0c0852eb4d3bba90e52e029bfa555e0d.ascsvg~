@@ -1,0 +1,20 @@
+setBorder(0)
+//given
+r = 6
+//calculated
+xmin = -r - 5
+xmax = r + 5
+ymin = -r - 5
+ymax = r + 5
+initPicture(xmin,xmax,ymin,ymax)
+
+//makes the circle
+circle([0,0],r)
+//draws a line from circle center to edge and labels it r
+line([0,0],[r,0])
+text([.5*r,0],"6",below)
+
+//makes a dot at the circle center
+fillstyle="solid"
+fill="black"
+circle([0,0],.1)

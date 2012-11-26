@@ -1,0 +1,68 @@
+ascisvg
+-----------------
+
+This is a modified version of the ASCIIsvg editor from: 
+http://www1.chapman.edu/~jipsen/svg/asciisvgeditor.html
+
+==========================================================
+ASCII -> SVG PIPELINE
+==========================================================
+
+Accepts an ASCII file, and creates a SVG file.
+
+Files:
+
+	> pythonsvg.py (class definition)
+	> ascii_to_svg.py
+
+LINUX Command Example:
+
+	> ascii_to_svg.py < ../files/ascii/file.ascsvg > ../files/svg/file.svg
+
+==========================================================
+SVG -> PNG PIPELINE
+==========================================================
+
+Accepts a SVG file, and creates a PNG file.
+
+Files:
+
+	> pythonsvg.py (class definition)
+	> svg_to_png.py
+
+LINUX Command Example:
+
+	> python svg_to_png.py < ../files/svg/file.svg > ../files/png/file.png
+
+==========================================================
+COMPARE
+==========================================================
+
+Generating an HTML file with PNG vs SVG comparison:
+
+Files:
+
+	> pythonsvg.py (class definition)
+	> files/* (folder for input/output files)
+	> html_generator.py (generation of the files)
+	> compare_graphs.html (view)
+
+LINUX Command Example:
+
+	> python html_generator.py
+
+==========================================================
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
