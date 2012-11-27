@@ -2,7 +2,6 @@
 from __future__ import division
 import math
 from lxml import etree
-import cairo
 import rsvg
 import re
 import sys
@@ -314,25 +313,72 @@ class SvgCanvas:
 	def process_text(self, text):
 	
 		quote_map =	self.find_quote_pairs(text); quote_map.sort(); quote_map.reverse()  # Reverse Sort
-		#text += '\ntext([-4,-4], "' + str(quote_map) + '", right)'
 
 		for quote_map_piece in quote_map:
+
 			# Isolate Piece
 			piece = text[quote_map_piece[0]+1:quote_map_piece[1]]
-			# Edit Piece
-			if (quote_map_piece[2] == "double"):	
-				piece = piece.replace("^{", "<tspan dy='\"+str(int(fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>")
-				piece = piece.replace("_{", "<tspan dy='\"+str(int(-fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>")
-				piece = piece.replace("{", "<tspan>") # Allowing blank braces 
-				piece = piece.replace("}", "</tspan>")
+			
+			# Variables
+			final_piece = ""
+			tail_stack = []
+			
+			# Search string
+			i = 0
+			while i < len(piece):
 
-			elif (quote_map_piece[2] == "single"):		
-				piece = piece.replace("^{", '<tspan dy="\'+str(int(fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">')
-				piece = piece.replace("_{", '<tspan dy="\'+str(int(-fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">')
-				piece = piece.replace("{", '<tspan>') # Allowing blank braces 
-				piece = piece.replace("}", '</tspan>')
+				# Superscript
+				if (i < len(piece)) and (piece[i:i+2] == "^{"):
+					# Double Quote
+					if (quote_map_piece[2] == "double"):
+						final_piece += "<tspan dy='\"+str(int(-fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
+						tail_stack.append("</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>")
+					# Single quote
+					elif (quote_map_piece[2] == "single"):
+						final_piece += '<tspan dy="\'+str(int(-fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
+						tail_stack.append('</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>')
+					# Increment counter (one extra)
+					i += 1
+
+				# Subscript
+				elif (i < len(piece)) and (piece[i:i+2] == "_{"):
+					# Double Quote
+					if (quote_map_piece[2] == "double"):
+						final_piece += "<tspan dy='\"+str(int(fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
+						tail_stack.append("</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(-fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>")
+					# Single quote
+					elif (quote_map_piece[2] == "single"):
+						final_piece += '<tspan dy="\'+str(int(fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
+						tail_stack.append('</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(-fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>')
+					# Increment counter (one extra)
+					i += 1
+
+				# Plain Bracket
+				elif (piece[i] == "{"):
+					# Double Quote
+					if (quote_map_piece[2] == "double"):
+						final_piece += "<tspan>"
+						tail_stack.append("</tspan>")
+					# Single quote
+					elif (quote_map_piece[2] == "single"):
+						final_piece += '<tspan>'
+						tail_stack.append('</tspan>')
+				
+				# Closing Bracket
+				elif (piece[i] == "}"):
+					# Pick last closing bracket from stack & delete
+					final_piece += tail_stack[-1]
+					del tail_stack[-1]
+				
+				# Else, add the character
+				else:
+					final_piece += piece[i]
+
+				# Increment counter
+				i += 1
+
 			# Integrate Piece
-			text = text[:quote_map_piece[0]+1] + piece + text[quote_map_piece[1]:]
+			text = text[:quote_map_piece[0]+1] + final_piece + text[quote_map_piece[1]:]
 				
 		return text
 
@@ -1355,28 +1401,6 @@ class SvgCanvas:
 					u = dz/math.sqrt(1 + gout*gout)
 					v = gout * u
 					self.line([round(x-u,2),round(y-v,2)],[round(x+u,2),round(y+v,2)])
-
-# ========================================================================================
-
-	'''
-	==============================
-	Functions (SVG -> PNG)
-	==============================
-	> create_png
-	============================== 
-	'''
-# ========================================================================================
-
-def create_png(filename, width, height, svg_string):
-
-	# Source: http://cairographics.org/download/
-	# Example Code: http://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
-
-	img =  cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-	ctx = cairo.Context(img)
-	handler= rsvg.Handle(None, svg_string)
-	handler.render_cairo(ctx)
-	img.write_to_png(filename+".png")
 
 # ========================================================================================
 
