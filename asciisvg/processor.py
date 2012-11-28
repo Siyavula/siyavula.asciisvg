@@ -74,7 +74,7 @@ if (form.getvalue('strip_tags') == 'true'):
 	if not (iRandomSeed == None):
 		randomSeed = iRandomSeed
 	elif (form.getvalue('randomize_lock') == 'true'):
-		randomSeed = form.getvalue('random_seed')
+		randomSeed = int(form.getvalue('random_seed'))
 	else:
 		randomSeed = random.randint(1, 1000000)		
 
