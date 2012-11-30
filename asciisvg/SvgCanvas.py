@@ -2,7 +2,6 @@
 from __future__ import division
 import math
 from lxml import etree
-import rsvg
 import re
 import sys
 
@@ -1403,4 +1402,3 @@ class SvgCanvas:
 					self.line([round(x-u,2),round(y-v,2)],[round(x+u,2),round(y+v,2)])
 
 # ========================================================================================
-
