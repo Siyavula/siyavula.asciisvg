@@ -366,8 +366,9 @@ class SvgCanvas:
 				# Closing Bracket
 				elif (piece[i] == "}"):
 					# Pick last closing bracket from stack & delete
-					final_piece += tail_stack[-1]
-					del tail_stack[-1]
+					if (len(tail_stack) > 0):
+						final_piece += tail_stack[-1]
+						del tail_stack[-1]
 				
 				# Else, add the character
 				else:
