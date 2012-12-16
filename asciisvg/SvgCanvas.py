@@ -309,78 +309,107 @@ class SvgCanvas:
 
 # ========================================================================================
 
-	def process_text(self, text):
+	def process_text(self, original_text):
+		
+		# Initialize variables
+		output_text = ""
+
+		# Initialize flags
+		open_quote_type = ""
+
+		# Initialize stack
+		tail_stack = []
 	
-		quote_map =	self.find_quote_pairs(text); quote_map.sort(); quote_map.reverse()  # Reverse Sort
+		# Loop through each letter
+		i = 0
+		while (i < len(original_text)):
 
-		for quote_map_piece in quote_map:
+			piece = original_text[i]
 
-			# Isolate Piece
-			piece = text[quote_map_piece[0]+1:quote_map_piece[1]]
-			
-			# Variables
-			final_piece = ""
-			tail_stack = []
-			
-			# Search string
-			i = 0
-			while i < len(piece):
+			# Check the quotes
+			if (piece == "'" or piece == '"'):
 
-				# Superscript
-				if (i < len(piece)) and (piece[i:i+2] == "^{"):
-					# Double Quote
-					if (quote_map_piece[2] == "double"):
-						final_piece += "<tspan dy='\"+str(int(-fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
-						tail_stack.append("</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>")
-					# Single quote
-					elif (quote_map_piece[2] == "single"):
-						final_piece += '<tspan dy="\'+str(int(-fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
-						tail_stack.append('</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>')
-					# Increment counter (one extra)
+				parity = False  # does text[i] have a preceeding slash? (default = false)
+
+				# Count parity for quote_current (check repetitively for all \\ slashes)
+				j = 0
+				while (j <= i) and (original_text[i-j-1] == "\\"):
+					# Toggle parity
+					parity = not (parity)
+					j += 1
+
+				# Only if the quote is valid
+				if (parity == False):
+					# Is there a piece open?
+					if (len(open_quote_type) > 0):
+						# Is it the closing pair?
+						if (open_quote_type == piece):
+							open_quote_type = ""
+					else:
+						open_quote_type = piece
+
+			# ===============================================
+
+			# SPECIAL CASES: If Quote is open -- change LATEX to SVG TAGS
+			if (len(open_quote_type) > 0):
+
+				# CASE: ^{
+				if (original_text[i:i+2] == "^{"):
 					i += 1
-
-				# Subscript
-				elif (i < len(piece)) and (piece[i:i+2] == "_{"):
 					# Double Quote
-					if (quote_map_piece[2] == "double"):
-						final_piece += "<tspan dy='\"+str(int(fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
-						tail_stack.append("</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(-fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>")
+					if (open_quote_type == '"'):
+						piece = "<tspan dy='\"+str(int(-fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
 					# Single quote
-					elif (quote_map_piece[2] == "single"):
-						final_piece += '<tspan dy="\'+str(int(fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
-						tail_stack.append('</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(-fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>')
-					# Increment counter (one extra)
-					i += 1
+					elif (open_quote_type == "'"):
+						piece = '<tspan dy="\'+str(int(-fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
+					# Tail Stack
+					tail_stack.append(['</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(fontsize)*0.7)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>', "</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(fontsize)*0.7)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>"])
 
-				# Plain Bracket
-				elif (piece[i] == "{"):
-					# Double Quote
-					if (quote_map_piece[2] == "double"):
-						final_piece += "<tspan>"
-						tail_stack.append("</tspan>")
-					# Single quote
-					elif (quote_map_piece[2] == "single"):
-						final_piece += '<tspan>'
-						tail_stack.append('</tspan>')
 				
-				# Closing Bracket
-				elif (piece[i] == "}"):
-					# Pick last closing bracket from stack & delete
+				# CASE: _{
+				elif (original_text[i:i+2] == "_{"):
+					i += 1
+					# Double Quote
+					if (open_quote_type == '"'):
+						piece = "<tspan dy='\"+str(int(fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)*0.7)+\"'>"
+					# Single quote
+					elif (open_quote_type == "'"):
+						piece = '<tspan dy="\'+str(int(fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)*0.7)+\'">'
+					# Tail Stack
+					tail_stack.append(['</tspan><tspan dx="\'+str(int(-fontsize)*0.3)+\'" dy="\'+str(int(-fontsize)*0.25)+\'" font-size="\'+str(int(fontsize)/0.7)+\'"> </tspan>', "</tspan><tspan dx='\"+str(int(-fontsize)*0.3)+\"' dy='\"+str(int(-fontsize)*0.25)+\"' font-size='\"+str(int(fontsize)/0.7)+\"'> </tspan>"])
+
+				# CASE: {
+				elif (original_text[i] == "{"):
+					# Double Quote
+					if (open_quote_type == '"'):
+						piece = "<tspan>"
+					# Single quote
+					elif (open_quote_type == "'"):
+						piece = '<tspan>'
+					# Tail Stack
+					tail_stack.append(['</tspan>',"</tspan>"])
+
+				# CASE: }
+				elif (original_text[i] == "}"):
+
+					# Check Stack for content
 					if (len(tail_stack) > 0):
-						final_piece += tail_stack[-1]
+						if (open_quote_type == "'"):
+							piece = tail_stack[-1][0]
+						if (open_quote_type == '"'):
+							piece = tail_stack[-1][1]
 						del tail_stack[-1]
-				
-				# Else, add the character
-				else:
-					final_piece += piece[i]
+					else:
+						piece = ""
 
-				# Increment counter
-				i += 1
+			# ===============================================
 
-			# Integrate Piece
-			text = text[:quote_map_piece[0]+1] + final_piece + text[quote_map_piece[1]:]
-				
-		return text
+			i += 1
+
+			# Append piece for output
+			output_text += piece
+
+		return output_text
 
 # ===================================================================================	
 
