@@ -1,1 +1,3 @@
+*.pyc
 /siyavula/asciisvg/buffer/buffer.png
+siyavula.asciisvg.egg-info/
