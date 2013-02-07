@@ -60,7 +60,7 @@ class SvgCanvas:
 	loc_var["markerstrokewidth"] = loc_var["defaultmarkerstrokewidth"]= 1
 	loc_var["markerstroke"] = loc_var["defaultmarkerstroke"] 					= "black"
 	loc_var["markerfill"] = loc_var["defaultmarkerfill"] 							= "yellow"
-	loc_var["markersize"] = loc_var["defaultmarkersize"] 							= 4
+	loc_var["markersize"] = loc_var["defaultmarkersize"] 							= 1
 	loc_var["marker"] = loc_var["defaultmarker"] 											= "none"
 	loc_var["dotradius"] = loc_var["defaultdotradius"] 								= 4
 	loc_var["ticklength"] = loc_var["defaultticklength"] 							= 4
@@ -749,8 +749,17 @@ class SvgCanvas:
 		if (d > 0.000001):
 			u = [u[0]/d, u[1]/d]	# unit vector
 			up = [-u[1],u[0]] 		# inverse unit vector
+			# Solid arrow
 			exec("node = etree.SubElement(" + str(self.xml_get_pointer()) + ", 'path')")
-			node.attrib['d'] = str("M " + str(w[0]-(size+15)*u[0]-5*up[0]) + " " + str(w[1]-(size+15)*u[1]-5*up[1]) + " L " + str(w[0]-(size*1.25-1)*u[0]) + " " + str(w[1]-(size*1.25-1)*u[1]) + " L " + str(w[0]-(size+15)*u[0]+5*up[0]) + " " + str(w[1]-(size+15)*u[1]+5*up[1]) + " Z")
+			if (self.loc_var["marker"] == "linearrow"):
+				size = self.loc_var["strokewidth"]
+				node.attrib['d'] = "" + \
+				" M " + str(w[0]-(size*1.25-1)*u[0]) + " " + str(w[1]-(size*1.25-1)*u[1]) + \
+				" L " + str(w[0]-(size+15)*u[0]-(self.loc_var["markersize"]+4)*up[0])+" "+str(w[1]-(self.loc_var["markersize"]+15)*u[1]-5*up[1]) + \
+				" M " + str(w[0]-(size*1.25-1)*u[0]) + " " + str(w[1]-(size*1.25-1)*u[1]) + \
+				" L " + str(w[0]-(size+15)*u[0]+(self.loc_var["markersize"]+4)*up[0]) + " " + str(w[1]-(self.loc_var["markersize"]+15)*u[1]+5*up[1])
+			else:
+				node.attrib['d'] = str("M " + str(w[0]-(size+15)*u[0]-5*up[0]) + " " + str(w[1]-(size+15)*u[1]-5*up[1]) + " L " + str(w[0]-(size*1.25-1)*u[0]) + " " + str(w[1]-(size*1.25-1)*u[1]) + " L " + str(w[0]-(size+15)*u[0]+5*up[0]) + " " + str(w[1]-(size+15)*u[1]+5*up[1]) + " Z")
 			node.attrib['stroke-width'] = str(size != None and size or self.loc_var["markerstrokewidth"])
 			node.attrib['stroke'] = self.loc_var["stroke"]
 			node.attrib['fill'] = self.loc_var["stroke"]
@@ -887,7 +896,7 @@ class SvgCanvas:
 			self.dot(p)
 
 		# ending point (q) 
-		if (self.loc_var["marker"] == "arrowdot" or self.loc_var["marker"] == "arrow"):	
+		if (self.loc_var["marker"] == "arrowdot" or self.loc_var["marker"] == "arrow" or self.loc_var["marker"] == "linearrow"):	
 			self.arrowhead(p,q,self.loc_var["markersize"])
 		if (self.loc_var["marker"] == "dot"):
 			self.dot(q)
