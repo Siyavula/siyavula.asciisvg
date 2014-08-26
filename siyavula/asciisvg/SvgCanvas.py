@@ -9,114 +9,94 @@ import sys
 
 class SvgCanvas:
 
-	# ==============================
-	# Variables
-	# ==============================
-
-	loc_var = {}
-	complete_string = ""
-	error_string = ""	
-	debug_string = ""
-	xml_parent = None
-	xml_pointer = None
-	xml_parent_pointer = None
-
-	# Error Handling
-	loc_var["complete_log"] = 0			# SVG Flags: Completed lines of code
-	loc_var["error_log"] 		= 1			# SVG Flags: Errors that occur
-
-	# Canvas Variables
-	loc_var["xmin"] = loc_var["defaultxmin"] 								= -5
-	loc_var["xmax"] = loc_var["defaultxmax"] 								= 5
-	loc_var["ymin"] = loc_var["defaultymin"] 								= -5
-	loc_var["ymax"] = loc_var["defaultymax"] 								= 5
-	loc_var["xscl"] = loc_var["defaultxscl"] 								= 1
-	loc_var["yscl"] = loc_var["defaultyscl"] 								= 1
-	loc_var["xgrid"] = loc_var["defaultxgrid"] 							= 1
-	loc_var["ygrid"] = loc_var["defaultygrid"] 							= 1
-	loc_var["xtick"] = loc_var["defaultxtick"] 							= 4
-	loc_var["ytick"] = loc_var["defaultytick"] 							= 4
-	loc_var["border"] = loc_var["defaultborder"] 						= 0
-	loc_var["height"] = loc_var["defaultheight"]  					= 600
-	loc_var["width"] = loc_var["defaultwidth"]							= 600
-	loc_var["xunitlength"] = loc_var["defaultxunitlength"] 	= 1
-	loc_var["yunitlength"] = loc_var["defaultyunitlength"] 	= 1
-	loc_var["origin"] = loc_var["defaultorigin"] 						= [0,0]
-
-	# Element Variables
-	loc_var["axesstroke"] = loc_var["defaultaxesstroke"] 							= "black"
-	loc_var["gridstroke"] = loc_var["defaultgridstroke"] 							= "grey"
-	loc_var["strokewidth"] = loc_var["defaultstrokewidth"] 						= 1 					
-	loc_var["strokedasharray"] = loc_var["defaultstrokedasharray"] 		= [1, 0]
-	loc_var["stroke"] = loc_var["defaultstroke"] 											= "black"
-	loc_var["arrowfill"] = loc_var["defaultarrowfill"] 								= loc_var["stroke"]
-	loc_var["fill"] = loc_var["defaultfill"] 													= "none"
-	loc_var["fontstyle"] = loc_var["defaultfontstyle"] 								= "italic"
-	loc_var["fontfamily"] = loc_var["defaultfontfamily"] 							= "times"		
-	loc_var["fontsize"] = loc_var["defaultfontsize"]									= 16
-	loc_var["fontweight"] = loc_var["defaultfontweight"] 							= "normal"
-	loc_var["fontstroke"] = loc_var["defaultfontstroke"] 							= "none"
-	loc_var["fontfill"] = loc_var["defaultfontfill"] 									= "black"  
-	loc_var["markerstrokewidth"] = loc_var["defaultmarkerstrokewidth"]= 1
-	loc_var["markerstroke"] = loc_var["defaultmarkerstroke"] 					= "black"
-	loc_var["markerfill"] = loc_var["defaultmarkerfill"] 							= "yellow"
-	loc_var["markersize"] = loc_var["defaultmarkersize"] 							= 1
-	loc_var["marker"] = loc_var["defaultmarker"] 											= "none"
-	loc_var["dotradius"] = loc_var["defaultdotradius"] 								= 4
-	loc_var["ticklength"] = loc_var["defaultticklength"] 							= 4
-	
-	# Function Variables
-	loc_var["f_func"] = None
-	loc_var["g_func"] = None
-
-	# Formula Variables
-	loc_var["cpi"] 		= "&#960;"
-	loc_var["ctheta"] = "&#952;"
-
-	# SVG Labels
-	loc_var["above"] = "above"
-	loc_var["below"] = "below"
-	loc_var["left"] = "left"
-	loc_var["right"] = "right"
-	loc_var["aboveleft"] = "aboveleft"
-	loc_var["aboveright"] = "aboveright"
-	loc_var["belowleft"] = "belowleft"
-	loc_var["belowright"] = "belowright"
-	loc_var["open"] = "open"
-	loc_var["closed"] = "closed"
-
-	# ========================================================================================
-
-	'''
-	==============================
-	Functions (Initialization)
-	==============================
-	> __init__
-	> convert_ascii_to_python()
-	> mathjs
-	> process_ascii_multi_line
-	> process_ascii_single_line
-	> generate_string
-	> reset_variables
-	> frange
-	> jrange
-	> removeComments
-	> initPicture
-	> setBorder
-	============================== 
-	'''
-
-	# ========================================================================================
-
 	def __init__(self, name, width=None, height=None):
 
-		self.reset_variables()		# Reset variables
-		self.xml_parent = etree.fromstring("<svg></svg>")		# Initialize SVG Canvas
+		# ==============================
+		# Variables
+		# ==============================
+
+		self.loc_var = {}
+		self.complete_string = ""
+		self.error_string = ""
+		self.debug_string = ""
+		self.xml_parent = None
+		self.xml_pointer = None
+		self.xml_parent_pointer = None
+
+		# Error Handling
+		self.loc_var["complete_log"] = 0 # SVG Flags: Completed lines of code
+		self.loc_var["error_log"] = 1    # SVG Flags: Errors that occur
+
+		# Canvas Variables
+		self.loc_var["xmin"] = self.loc_var["defaultxmin"] = -5
+		self.loc_var["xmax"] = self.loc_var["defaultxmax"] = 5
+		self.loc_var["ymin"] = self.loc_var["defaultymin"] = -5
+		self.loc_var["ymax"] = self.loc_var["defaultymax"] = 5
+		self.loc_var["xscl"] = self.loc_var["defaultxscl"] = 1
+		self.loc_var["yscl"] = self.loc_var["defaultyscl"] = 1
+		self.loc_var["xgrid"] = self.loc_var["defaultxgrid"] = 1
+		self.loc_var["ygrid"] = self.loc_var["defaultygrid"] = 1
+		self.loc_var["xtick"] = self.loc_var["defaultxtick"] = 4
+		self.loc_var["ytick"] = self.loc_var["defaultytick"] = 4
+		self.loc_var["border"] = self.loc_var["defaultborder"] = 0
+		self.loc_var["height"] = self.loc_var["defaultheight"] = 600
+		self.loc_var["width"] = self.loc_var["defaultwidth"] = 600
+		self.loc_var["xunitlength"] = self.loc_var["defaultxunitlength"] = 1
+		self.loc_var["yunitlength"] = self.loc_var["defaultyunitlength"] = 1
+		self.loc_var["origin"] = self.loc_var["defaultorigin"] = [0, 0]
+
+		# Element Variables
+		self.loc_var["axesstroke"] = self.loc_var["defaultaxesstroke"] = "black"
+		self.loc_var["gridstroke"] = self.loc_var["defaultgridstroke"] = "grey"
+		self.loc_var["strokewidth"] = self.loc_var["defaultstrokewidth"] = 1
+		self.loc_var["strokedasharray"] = self.loc_var["defaultstrokedasharray"] = [1, 0]
+		self.loc_var["stroke"] = self.loc_var["defaultstroke"] = "black"
+		self.loc_var["arrowfill"] = self.loc_var["defaultarrowfill"] = self.loc_var["stroke"]
+		self.loc_var["fill"] = self.loc_var["defaultfill"] = "none"
+		self.loc_var["fontstyle"] = self.loc_var["defaultfontstyle"] = "italic"
+		self.loc_var["fontfamily"] = self.loc_var["defaultfontfamily"] = "times"
+		self.loc_var["fontsize"] = self.loc_var["defaultfontsize"] = 16
+		self.loc_var["fontweight"] = self.loc_var["defaultfontweight"] = "normal"
+		self.loc_var["fontstroke"] = self.loc_var["defaultfontstroke"] = "none"
+		self.loc_var["fontfill"] = self.loc_var["defaultfontfill"] = "black"
+		self.loc_var["markerstrokewidth"] = self.loc_var["defaultmarkerstrokewidth"] = 1
+		self.loc_var["markerstroke"] = self.loc_var["defaultmarkerstroke"] = "black"
+		self.loc_var["markerfill"] = self.loc_var["defaultmarkerfill"] = "yellow"
+		self.loc_var["markersize"] = self.loc_var["defaultmarkersize"] = 1
+		self.loc_var["marker"] = self.loc_var["defaultmarker"] = "none"
+		self.loc_var["dotradius"] = self.loc_var["defaultdotradius"] = 4
+		self.loc_var["ticklength"] = self.loc_var["defaultticklength"] = 4
+
+		# Function Variables
+		self.loc_var["f_func"] = None
+		self.loc_var["g_func"] = None
+
+		# Formula Variables
+		self.loc_var["cpi"] = "&#960;"
+		self.loc_var["ctheta"] = "&#952;"
+
+		# SVG Labels
+		self.loc_var["above"] = "above"
+		self.loc_var["below"] = "below"
+		self.loc_var["left"] = "left"
+		self.loc_var["right"] = "right"
+		self.loc_var["aboveleft"] = "aboveleft"
+		self.loc_var["aboveright"] = "aboveright"
+		self.loc_var["belowleft"] = "belowleft"
+		self.loc_var["belowright"] = "belowright"
+		self.loc_var["open"] = "open"
+		self.loc_var["closed"] = "closed"
+
+		# Start init
+		self.reset_variables()
+		self.xml_parent = etree.fromstring("<svg></svg>")
 		self.xml_parent.attrib['id'] = str(name)
-		if (width != None): self.loc_var["width"] = int(float(width))
-		if (height != None): self.loc_var["height"] = int(float(height)) 
-		self.start_group()	# Create a blank rotation group
-		self.initPicture(-5,5,-5,5)
+		if (width != None):
+			self.loc_var["width"] = int(float(width))
+		if (height != None):
+			self.loc_var["height"] = int(float(height))
+		self.start_group() # Create a blank rotation group
+		self.initPicture(-5, 5, -5, 5)
 
 		# Declare Functions as Variables
 		self.loc_var["mathjs"] = self.mathjs
@@ -155,11 +135,11 @@ class SvgCanvas:
 		self.loc_var["flower"] = self.flower
 
 		# Special Functions
-		self.loc_var["frange"] = self.frange										# Decimal-compatible "range"
-		self.loc_var["jrange"] = self.jrange										# Javascript in Python
+		self.loc_var["frange"] = self.frange # Decimal-compatible "range"
+		self.loc_var["jrange"] = self.jrange # Javascript in Python
 
 		# Math Functions
-		for key in [	'sin','cos','tan','asin','acos','atan','sinh','cosh', 									'tanh','asinh','acosh','atanh','log','pi','e','sqrt', 'floor', 'ceil']:
+		for key in ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'log', 'pi', 'e', 'sqrt', 'floor', 'ceil']:
 			self.loc_var[key] = math.__getattribute__(key)
 
 # ===================================================================================	
