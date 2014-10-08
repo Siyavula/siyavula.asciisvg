@@ -5,7 +5,9 @@ from lxml import etree
 import re
 import sys
 
-# ===================================================================================	
+
+class AsciiSvgError(Exception):
+	pass
 
 class SvgCanvas:
 
@@ -413,9 +415,9 @@ class SvgCanvas:
 		# Try Except
 		try:
 			exec(final_string, None, self.loc_var)
-			self.complete_string += "\nASCII -> SVG conversion complete. \n\nOriginal Code:\n\n" + str(ascii_string) + "\n\nCode Processed:\n\n" + str(final_string) 
 		except Exception, err:
-			self.error_string += "\nASCII -> SVG conversion ERROR: " + str(err) + ", " + str(sys.exc_info()[0]) + "\n\nOriginal Code:\n\n" + str(ascii_string) + "\n\nCode Processed:\n\n" + str(final_string) 
+			raise AsciiSvgError("Conversion failed with exception " + repr(err))
+		self.complete_string += "\nASCII -> SVG conversion complete. \n\nOriginal Code:\n\n" + str(ascii_string) + "\n\nCode Processed:\n\n" + str(final_string) 
 
 # ===================================================================================	
 
@@ -434,10 +436,9 @@ class SvgCanvas:
 				a = self.mathjs(a)											# Math Formulas
 				try:
 					exec(a, None, self.loc_var)
-					self.complete_string += "\nComplete: " + str(a)
 				except Exception, err:				
-					self.error_string += "\nERROR: " + str(a) + "\nMessage: " + str(err) + ", " + str(sys.exc_info()[0])
-					break
+					raise AsciiSvgError("Conversion failed with exception " + repr(err))
+				self.complete_string += "\nComplete: " + str(a)
 
 		return ascii_string
 
