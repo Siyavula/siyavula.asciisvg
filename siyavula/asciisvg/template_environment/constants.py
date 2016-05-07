@@ -1,0 +1,5 @@
+earthGravity = gravity = 9.8 # [m / s^2]
+speedOfLight = 2.99e8 # [m / s^2]
+coulomb = 8.99e9 # [N m^2 / C^2]
+avogadro = 6.022e23 # [1 / mol]
+gravitational = 6.67e-11 # [N m^2 / kg^2]

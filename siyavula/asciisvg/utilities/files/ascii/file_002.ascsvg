@@ -1,0 +1,42 @@
+# ASCII code here...
+
+# Sky
+fill="lightblue"
+rect([-10,-10],[10,10])
+strokewidth=2
+
+# Ground
+fill = "forestgreen"; stroke = "darkgreen"
+rect([-10,-10],[10,-2.5])
+
+# Clouds
+fill = "white";
+stroke = "grey"
+cloud([2,2],1.5,6)
+
+# Demo Text
+text([2,2.5], "T_{i}^{2}")
+
+# Stars
+fill = "yellow"; stroke = "orangered"
+star([-2.5,3],1,20,0.8)
+
+# Stars
+strokewidth=1.5
+fill = "yellow"; stroke = "orangered"
+star([0,4],0.3,8,0.3)
+
+#Grass
+strokewidth=2
+fill = "yellow"; stroke = "darkgreen"
+grass([-2,-3],2,6)
+
+# Flower base
+strokewidth=2
+fill = "yellow"; stroke = "darkgreen"
+grass([2,-3],2,5)
+
+# Flower head
+strokewidth=1.5
+fill = "red"; stroke = "black"
+flower([2,-0.8],0.4,12, "yellow","black")

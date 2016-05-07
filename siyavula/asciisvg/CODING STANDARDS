@@ -1,0 +1,167 @@
+==========================================================
+Programming Standards for pythonSVG
+==========================================================
+
+RE: Image Files (*.ascsvg)
+
+pythonSVG converts from Javascript (asciisvg) to Python 
+before compiling. Therefore, pythonSVG has NEW standards.
+
+Changes only apply to NEW image files because all EXISTING 
+image files have already been modified. 
+
+pythonSVG standards will take effect as of: 28th Aug 2012
+
+Please pay particular attention to the required coding 
+standards for the following coding structures:
+
+==========================================================
+IF STATEMENTS
+==========================================================
+
+If statments need to take the same indented for as they would
+in Python. Correct indentation is very important.
+
+==========
+Example 1:
+==========
+
+if (statement == True)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+
+	if (statement == True)
+	{
+		// Level 2 Indented code
+		// Level 2 Indented code
+	}
+}
+
+==========
+Example 2:
+==========
+
+if (statement == True)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+}
+
+elif (statement == True)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+}
+
+else
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+}
+
+============
+Please Note: 
+============
+
+	> The braces are on a separate line to the condition.
+	> The braces are in line with the condition.
+	> Only the code inside the braces is indented to the next level.
+
+==========================================================
+FOR LOOPS
+==========================================================
+
+If statments need to take the same indented for as they would
+in Python. Correct indentation is very important.
+
+==========
+Example 1:
+==========
+
+for (i=1;i<10;i++)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+}
+
+==========
+Example 2:
+==========
+
+for (i=1;i<10;i++)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+
+	for (i=1;i<10;i++)
+	{
+		// Level 2 Indented code
+		// Level 2 Indented code
+
+		for (i=1;i<10;i++)
+		{
+			// Level 3 Indented code
+			// Level 3 Indented code
+		}
+	}
+}
+
+============
+Please Note: 
+============
+
+	> The braces are on a separate line to the condition.
+	> The braces are in line with the condition.
+	> Only the code inside the braces is indented to the next level.
+
+==========================================================
+WHILE LOOPS
+==========================================================
+
+If statments need to take the same indented for as they would
+in Python. Correct indentation is very important.
+
+==========
+Example 1:
+==========
+
+while (statement == True)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+}
+
+==========
+Example 2:
+==========
+
+while (statement == True)
+{
+	// Level 1 Indented code
+	// Level 1 Indented code
+
+	while (statement == True)	
+	{
+		// Level 2 Indented code
+		// Level 2 Indented code
+
+		while (statement == True)
+		{
+			// Level 3 Indented code
+			// Level 3 Indented code
+		}
+	}
+}
+
+============
+Please Note: 
+============
+
+	> The braces are on a separate line to the condition.
+	> The braces are in line with the condition.
+	> Only the code inside the braces is indented to the next level.
+
+==========================================================
+
+

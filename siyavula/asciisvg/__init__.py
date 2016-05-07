@@ -1,1 +1,1 @@
-from pythonsvg import *
+from SvgCanvas import *
